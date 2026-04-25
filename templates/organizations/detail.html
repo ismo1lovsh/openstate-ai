@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ organization.name }} — CleanState AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'organizations:list' %}">Tashkilotlar</a></li>
+            <li class="breadcrumb-item active">{{ organization.name|truncatechars:50 }}</li>
+        </ol>
+    </nav>
+    
+    <!-- Header -->
+    <div class="stat-card mb-4" style="background: linear-gradient(135deg, {{ organization.category_color }}22, {{ organization.category_color }}11);">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <span class="badge bg-secondary mb-2">#{{ organization.rank }} o'rin</span>
+                <h1 class="fw-bold mb-1">{{ organization.name }}</h1>
+                <p class="text-muted">{{ organization.get_org_type_display }}</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div class="display-3 fw-bold" style="color: {{ organization.category_color }};">
+                    {{ organization.openness_score }}
+                </div>
+                <span class="badge openness-{{ organization.category }} fs-6">
+                    {{ organization.get_category_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-label">Xodimlar</div>
+                <div class="stat-number text-primary">{{ organization.employees_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-label">Amaldorlar bazada</div>
+                <div class="stat-number text-info">{{ officials.count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-label">🟠 Yuqori risk</div>
+                <div class="stat-number" style="color: #f97316;">{{ high_count }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-label">🔴 Kritik risk</div>
+                <div class="stat-number text-danger">{{ critical_count }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trend Chart -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="stat-card">
+                <h5 class="fw-bold">📊 Yillar bo'yicha trend</h5>
+                <canvas id="trendChart"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="stat-card">
+                <h5 class="fw-bold">🎯 Joriy ko'rsatkichlar</h5>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>2025 yil:</span>
+                        <strong>{{ organization.openness_score }} ball</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>2024 yil:</span>
+                        <strong>{{ organization.score_2024 }} ball</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>2023 yil:</span>
+                        <strong>{{ organization.score_2023 }} ball</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between">
+                        <span>Trend:</span>
+                        <strong>
+                            {% if organization.trend == 'up' %}
+                                <span class="text-success">📈 O'sishda</span>
+                            {% elif organization.trend == 'down' %}
+                                <span class="text-danger">📉 Pasayishda</span>
+                            {% else %}
+                                <span class="text-muted">➡️ Stabil</span>
+                            {% endif %}
+                        </strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Officials in this organization -->
+    <div class="stat-card mb-4">
+        <h4 class="fw-bold mb-3">
+            <i class="bi bi-people"></i> Ushbu tashkilot amaldorlari
+        </h4>
+        
+        {% if officials %}
+        <div class="alert alert-primary border-0" style="background: #dbeafe;">
+            <i class="bi bi-lightbulb"></i>
+            <strong>AI tahlil:</strong> 
+            Ochiqlik Indeksi — tashkilot darajasi. Lekin korrupsiya <strong>shaxs darajasida</strong> sodir bo'ladi. 
+            Pastdagi amaldorlar individual tekshirildi.
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>F.I.O</th>
+                        <th>Lavozim</th>
+                        <th>Risk Score</th>
+                        <th>Darajasi</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for official in officials %}
+                    <tr>
+                        <td><strong>{{ official.full_name }}</strong></td>
+                        <td><small>{{ official.position }}</small></td>
+                        <td>
+                            <strong class="{% if official.risk_level == 'critical' %}text-danger{% elif official.risk_level == 'high' %}text-warning{% endif %}">
+                                {{ official.risk_score|floatformat:1 }}
+                            </strong>
+                        </td>
+                        <td>
+                            <span class="risk-badge risk-{{ official.risk_level }}">
+                                {{ official.get_risk_level_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'officials:detail' official.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Tahlil
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">Bu tashkilot uchun hozircha amaldorlar bazaga kiritilmagan.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['2023', '2024', '2025'],
+            datasets: [{
+                label: 'Ochiqlik balli',
+                data: [{{ organization.score_2023 }}, {{ organization.score_2024 }}, {{ organization.openness_score }}],
+                borderColor: '{{ organization.category_color }}',
+                backgroundColor: '{{ organization.category_color }}33',
+                tension: 0.3,
+                fill: true,
+                borderWidth: 3,
+                pointRadius: 6,
+                pointBackgroundColor: '{{ organization.category_color }}',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: { color: '#f1f5f9' }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

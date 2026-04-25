@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}Network Graph — CleanState AI{% endblock %}
+
+{% block extra_css %}
+<script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+    #network {
+        width: 100%;
+        height: 700px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: #0f172a;
+    }
+    
+    .legend-item {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .legend-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        margin-right: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1">
+                <i class="bi bi-diagram-3 text-primary"></i>
+                Hidden Network Detector
+            </h1>
+            <p class="text-muted mb-0">Amaldorlar, qarindoshlar, kompaniyalar va tenderlar o'rtasidagi bog'lanishlar</p>
+        </div>
+        <div>
+            <select id="officialSelect" class="form-select" onchange="loadOfficial(this.value)">
+                {% for o in officials %}
+                <option value="{{ o.pk }}" {% if o.pk == official.pk %}selected{% endif %}>
+                    {{ o.full_name }} — Risk: {{ o.risk_score|floatformat:0 }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    
+    <!-- Official info card -->
+    {% if official %}
+    <div class="stat-card mb-3" style="border-left: 4px solid #ef4444;">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="fw-bold mb-1">{{ official.full_name }}</h4>
+                <p class="text-muted mb-0">
+                    {{ official.position }} · {{ official.organization.name }}
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <span class="risk-badge risk-{{ official.risk_level }}" style="font-size: 1rem;">
+                    Risk: {{ official.risk_score|floatformat:0 }}
+                </span>
+                <a href="{% url 'officials:detail' official.pk %}" class="btn btn-sm btn-outline-primary ms-2">
+                    <i class="bi bi-file-text"></i> To'liq profil
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Legend -->
+    <div class="stat-card mb-3">
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #ef4444;"></div>
+            <span>Amaldor</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #3b82f6;"></div>
+            <span>Tashkilot</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #8b5cf6;"></div>
+            <span>Qarindoshi</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #eab308;"></div>
+            <span>Biznes</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #ef4444;"></div>
+            <span>Shubhali tender</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background: #22c55e;"></div>
+            <span>Oddiy tender</span>
+        </div>
+    </div>
+    
+    <!-- Network -->
+    <div id="network"></div>
+    
+    <div class="row mt-3">
+        <div class="col-md-6">
+            <div class="stat-card">
+                <h6 class="fw-bold">🔍 Ko'rsatma</h6>
+                <ul class="mb-0 small">
+                    <li>Node ustiga bosib, uni ko'chirishingiz mumkin</li>
+                    <li>Mouse bilan scroll qilib zoom qilish</li>
+                    <li>Node ustiga hover qilib batafsil ma'lumot</li>
+                    <li>Qizil chiziqlar — shubhali bog'lanishlar</li>
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stat-card" style="background: #fef2f2; border-left: 4px solid #ef4444;">
+                <h6 class="fw-bold text-danger">🚨 AI topilma</h6>
+                <p class="mb-0 small">
+                    {% if official.red_flags %}
+                        {% for flag in official.red_flags %}
+                        • {{ flag }}<br>
+                        {% endfor %}
+                    {% else %}
+                        Sezilarli anomaliyalar topilmadi.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info">Amaldorlar bazasida hali ma'lumot yo'q. Avval seed data ni yuklang.</div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function loadOfficial(id) {
+    window.location.href = '/network/' + id + '/';
+}
+
+{% if official %}
+fetch('{% url "network:data" official.pk %}')
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('network');
+        
+        const nodes = new vis.DataSet(data.nodes);
+        const edges = new vis.DataSet(data.edges);
+        
+        const networkData = { nodes: nodes, edges: edges };
+        
+        const options = {
+            nodes: {
+                shape: 'dot',
+                font: {
+                    size: 14,
+                    color: '#ffffff',
+                    face: 'Inter',
+                    strokeWidth: 2,
+                    strokeColor: '#0f172a'
+                },
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                shadow: true
+            },
+            edges: {
+                arrows: {
+                    to: { enabled: true, scaleFactor: 0.5 }
+                },
+                font: {
+                    size: 10,
+                    color: '#cbd5e1',
+                    strokeWidth: 0,
+                    align: 'middle'
+                },
+                smooth: {
+                    type: 'continuous'
+                },
+                width: 2,
+                shadow: true
+            },
+            physics: {
+                barnesHut: {
+                    gravitationalConstant: -3000,
+                    centralGravity: 0.3,
+                    springLength: 150,
+                    springConstant: 0.04
+                },
+                stabilization: { iterations: 200 }
+            },
+            interaction: {
+                hover: true,
+                tooltipDelay: 200,
+                navigationButtons: true,
+                keyboard: true
+            }
+        };
+        
+        new vis.Network(container, networkData, options);
+    })
+    .catch(err => {
+        document.getElementById('network').innerHTML = '<div class="text-center p-5 text-white">Graf yuklanmadi</div>';
+    });
+{% endif %}
+</script>
+{% endblock %}

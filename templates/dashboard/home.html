@@ -1,0 +1,412 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}CleanState AI — Dashboard{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container hero-content">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <div class="mb-3">
+                    <span class="badge bg-light text-primary px-3 py-2 rounded-pill">
+                        <i class="bi bi-shield-check"></i> AI-Powered Anti-Corruption Platform
+                    </span>
+                </div>
+                <h1>
+                    Korrupsiyani <span style="color:#fbbf24;">sodir bo'lishdan oldin</span> ko'ramiz
+                </h1>
+                <p class="lead mb-4">
+                    Daromad va hayot tarzi nomuvofiqligini AI yordamida aniqlaydigan platforma. 
+                    Amaldorlarni tekshirmaymiz — <strong>riskni aniqlaymiz</strong>.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="{% url 'officials:list' %}" class="btn btn-light btn-lg">
+                        <i class="bi bi-search"></i> Amaldorlarni tekshirish
+                    </a>
+                    <a href="{% url 'organizations:list' %}" class="btn btn-outline-light btn-lg">
+                        <i class="bi bi-building"></i> Ochiqlik Indeksi 2025
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center d-none d-lg-block">
+                <div style="font-size: 10rem; opacity: 0.2;">
+                    <i class="bi bi-radar"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Stats -->
+<div class="container py-5">
+    <!-- Alert: Inspiration from Official Source -->
+    <div class="alert alert-info border-0 shadow-sm mb-4" style="background: linear-gradient(135deg, #dbeafe, #e0e7ff);">
+        <div class="d-flex">
+            <i class="bi bi-info-circle-fill me-3" style="font-size: 1.5rem; color: #1e40af;"></i>
+            <div>
+                <strong>Rasmiy manba asosida:</strong> 
+                Platforma O'zbekiston Korrupsiyaga Qarshi Kurashish Agentligining 
+                <strong>Ochiqlik Indeksi-2025</strong> ma'lumotlari asosida yaratildi. 
+                Biz tashkilot darajasidan <strong>shaxs darajasiga</strong> tushamiz.
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Stats Cards -->
+    <div class="row g-3 mb-5">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="stat-label">Jami tashkilotlar</span>
+                    <i class="bi bi-building text-primary"></i>
+                </div>
+                <div class="stat-number text-primary">{{ total_orgs }}</div>
+                <small class="text-muted">Ochiqlik Indeksida</small>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="stat-label">Amaldorlar</span>
+                    <i class="bi bi-people text-info"></i>
+                </div>
+                <div class="stat-number" style="color:#0ea5e9;">{{ total_officials }}</div>
+                <small class="text-muted">Bazada mavjud</small>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="stat-label">Kritik risk</span>
+                    <i class="bi bi-exclamation-triangle-fill text-danger"></i>
+                </div>
+                <div class="stat-number text-danger pulse-critical d-inline-block rounded px-2">{{ critical_risk }}</div>
+                <small class="text-muted">Shoshilinch tekshiruv</small>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="stat-label">Shubhali tenderlar</span>
+                    <i class="bi bi-file-earmark-ruled text-warning"></i>
+                </div>
+                <div class="stat-number text-warning">{{ suspicious_tenders_count }}</div>
+                <small class="text-muted">Anomaliya aniqlangan</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ochiqlik Indeksi Overview -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-8">
+            <div class="stat-card h-100">
+                <h3 class="section-title">
+                    <i class="bi bi-pie-chart-fill text-primary"></i>
+                    Ochiqlik Indeksi 2025
+                </h3>
+                <p class="section-subtitle">Tashkilotlar bo'yicha taqsimlanish</p>
+                
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="p-3 rounded-3 mb-2" style="background: #d1fae5;">
+                            <div class="display-4 fw-bold" style="color:#065f46;">{{ green_count }}</div>
+                            <div class="text-success fw-bold">🟢 YASHIL</div>
+                            <small class="text-muted">{{ green_percent }}% tashkilotlar</small>
+                        </div>
+                        <small class="text-muted">71-100 ball</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 rounded-3 mb-2" style="background: #fef3c7;">
+                            <div class="display-4 fw-bold" style="color:#854d0e;">{{ yellow_count }}</div>
+                            <div class="text-warning fw-bold">🟡 SARIQ</div>
+                            <small class="text-muted">{{ yellow_percent }}% tashkilotlar</small>
+                        </div>
+                        <small class="text-muted">55-71 ball</small>
+                    </div>
+                    <div class="col-4">
+                        <div class="p-3 rounded-3 mb-2" style="background: #fee2e2;">
+                            <div class="display-4 fw-bold" style="color:#991b1b;">{{ red_count }}</div>
+                            <div class="text-danger fw-bold">🔴 QIZIL</div>
+                            <small class="text-muted">{{ red_percent }}% tashkilotlar</small>
+                        </div>
+                        <small class="text-muted">0-55 ball</small>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <canvas id="opennessChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="stat-card h-100">
+                <h3 class="section-title">
+                    <i class="bi bi-shield-exclamation text-danger"></i>
+                    Risk Taqsimoti
+                </h3>
+                <p class="section-subtitle">Amaldorlar bo'yicha</p>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>🔴 Kritik</span>
+                        <strong>{{ critical_risk }}</strong>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar bg-danger" style="width: {% widthratio critical_risk total_officials 100 %}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>🟠 Yuqori</span>
+                        <strong>{{ high_risk }}</strong>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar" style="width: {% widthratio high_risk total_officials 100 %}%; background: #f97316;"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>🟡 O'rta</span>
+                        <strong>{{ medium_risk }}</strong>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar bg-warning" style="width: {% widthratio medium_risk total_officials 100 %}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>🟢 Past</span>
+                        <strong>{{ low_risk }}</strong>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar bg-success" style="width: {% widthratio low_risk total_officials 100 %}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Top Risky Officials -->
+    <div class="row g-4 mb-5">
+        <div class="col-12">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h3 class="section-title mb-1">
+                            <i class="bi bi-exclamation-octagon-fill text-danger"></i>
+                            Yuqori riskli amaldorlar
+                        </h3>
+                        <p class="text-muted mb-0">AI tizim tomonidan aniqlangan</p>
+                    </div>
+                    <a href="{% url 'officials:list' %}" class="btn btn-outline-primary btn-sm">
+                        Barchasini ko'rish <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-modern mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>F.I.O</th>
+                                <th>Lavozim</th>
+                                <th>Tashkilot</th>
+                                <th>Risk Score</th>
+                                <th>Darajasi</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for official in top_risky_officials %}
+                            <tr>
+                                <td><strong class="text-muted">{{ forloop.counter }}</strong></td>
+                                <td>
+                                    <div class="fw-bold">{{ official.full_name }}</div>
+                                </td>
+                                <td>
+                                    <small>{{ official.position }}</small>
+                                </td>
+                                <td>
+                                    <small class="text-muted">{{ official.organization.name|truncatechars:40 }}</small>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong class="text-danger">{{ official.risk_score|floatformat:1 }}</strong>
+                                        <div class="progress progress-thin" style="width: 80px;">
+                                            <div class="progress-bar bg-danger" style="width: {{ official.risk_score }}%"></div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="risk-badge risk-{{ official.risk_level }}">
+                                        {{ official.get_risk_level_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'officials:detail' official.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4 text-muted">
+                                    Hozircha ma'lumot yo'q
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Worst Organizations -->
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="stat-card">
+                <h3 class="section-title">
+                    <i class="bi bi-building-exclamation text-danger"></i>
+                    🔴 Qizil zonadagi tashkilotlar
+                </h3>
+                <p class="section-subtitle">Ochiqlik darajasi past</p>
+                
+                {% for org in worst_orgs %}
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div>
+                        <a href="{% url 'organizations:detail' org.pk %}" class="text-decoration-none">
+                            <div class="fw-bold text-dark">{{ org.name }}</div>
+                        </a>
+                        <small class="text-muted">{{ org.get_org_type_display }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge openness-red fs-6">{{ org.openness_score }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Ma'lumot yo'q</p>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="stat-card">
+                <h3 class="section-title">
+                    <i class="bi bi-building-check text-success"></i>
+                    🟢 Yashil zonadagi tashkilotlar
+                </h3>
+                <p class="section-subtitle">Eng yaxshi ko'rsatkichlar</p>
+                
+                {% for org in best_orgs %}
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div>
+                        <a href="{% url 'organizations:detail' org.pk %}" class="text-decoration-none">
+                            <div class="fw-bold text-dark">{{ org.name }}</div>
+                        </a>
+                        <small class="text-muted">{{ org.get_org_type_display }}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge openness-green fs-6">{{ org.openness_score }}</span>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-muted">Ma'lumot yo'q</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Features -->
+    <div class="mt-5 pt-5">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">4 ta asosiy modul</h2>
+            <p class="text-muted">CleanState AI imkoniyatlari</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card text-center h-100">
+                    <div class="mb-3" style="font-size: 2.5rem;">💰</div>
+                    <h5 class="fw-bold">Lifestyle Analyzer</h5>
+                    <p class="small text-muted">Daromad va hayot tarzi nomuvofiqligini aniqlaydi</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card text-center h-100">
+                    <div class="mb-3" style="font-size: 2.5rem;">🕸️</div>
+                    <h5 class="fw-bold">Network Detector</h5>
+                    <p class="small text-muted">Qarindoshlar va tender bog'liqliklarini ochadi</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card text-center h-100">
+                    <div class="mb-3" style="font-size: 2.5rem;">📊</div>
+                    <h5 class="fw-bold">Wealth Tracker</h5>
+                    <p class="small text-muted">Vaqt bo'yicha boylik o'sishini kuzatadi</p>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="stat-card text-center h-100">
+                    <div class="mb-3" style="font-size: 2.5rem;">🚨</div>
+                    <h5 class="fw-bold">Risk Score</h5>
+                    <p class="small text-muted">Explainable AI bilan risk darajasi</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Openness Chart (Trend)
+    const ctx = document.getElementById('opennessChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['2023', '2024', '2025'],
+            datasets: [
+                {
+                    label: '🟢 Yashil',
+                    data: [31, 50, {{ green_count }}],
+                    backgroundColor: '#22c55e',
+                },
+                {
+                    label: '🟡 Sariq',
+                    data: [43, 35, {{ yellow_count }}],
+                    backgroundColor: '#eab308',
+                },
+                {
+                    label: '🔴 Qizil',
+                    data: [29, 13, {{ red_count }}],
+                    backgroundColor: '#ef4444',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: {
+                    display: true,
+                    text: '2023-2025 Ochiqlik Trendi'
+                }
+            },
+            scales: {
+                x: { stacked: false },
+                y: { stacked: false, beginAtZero: true }
+            }
+        }
+    });
+</script>
+{% endblock %}

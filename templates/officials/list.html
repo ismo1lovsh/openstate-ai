@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}Amaldorlar — CleanState AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="fw-bold mb-1">
+                <i class="bi bi-people text-primary"></i> Amaldorlar
+            </h1>
+            <p class="text-muted mb-0">AI tizim tomonidan tahlil qilingan amaldorlar ro'yxati</p>
+        </div>
+        <div>
+            <span class="badge bg-secondary fs-6">{{ total_count }} ta</span>
+        </div>
+    </div>
+    
+    <!-- Filter -->
+    <div class="stat-card mb-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-uppercase">Qidirish</label>
+                <input type="text" name="search" value="{{ search_query }}" 
+                       class="form-control" placeholder="Ism yoki lavozim...">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-uppercase">Risk darajasi</label>
+                <select name="risk" class="form-select">
+                    <option value="">Barchasi</option>
+                    <option value="critical" {% if selected_risk == 'critical' %}selected{% endif %}>🔴 Kritik</option>
+                    <option value="high" {% if selected_risk == 'high' %}selected{% endif %}>🟠 Yuqori</option>
+                    <option value="medium" {% if selected_risk == 'medium' %}selected{% endif %}>🟡 O'rta</option>
+                    <option value="low" {% if selected_risk == 'low' %}selected{% endif %}>🟢 Past</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-uppercase">Tashkilot</label>
+                <select name="organization" class="form-select">
+                    <option value="">Barchasi</option>
+                    {% for org in organizations %}
+                    <option value="{{ org.pk }}" {% if selected_org == org.pk %}selected{% endif %}>
+                        {{ org.name|truncatechars:40 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary-custom w-100">
+                    <i class="bi bi-funnel"></i> Filterlash
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Officials Grid -->
+    <div class="row g-3">
+        {% for official in officials %}
+        <div class="col-lg-6">
+            <div class="stat-card h-100 {% if official.risk_level == 'critical' %}pulse-critical{% endif %}" 
+                 style="border-left: 4px solid {% if official.risk_level == 'critical' %}#ef4444{% elif official.risk_level == 'high' %}#f97316{% elif official.risk_level == 'medium' %}#eab308{% else %}#22c55e{% endif %};">
+                <div class="d-flex align-items-start">
+                    <!-- Avatar -->
+                    <div class="me-3">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 60px; height: 60px; background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; font-size: 1.5rem; font-weight: bold;">
+                            {{ official.full_name|slice:":1" }}
+                        </div>
+                    </div>
+                    
+                    <!-- Info -->
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="mb-1 fw-bold">
+                                    <a href="{% url 'officials:detail' official.pk %}" class="text-decoration-none text-dark">
+                                        {{ official.full_name }}
+                                    </a>
+                                </h5>
+                                <p class="small text-muted mb-1">{{ official.position }}</p>
+                                <p class="small text-muted mb-0">
+                                    <i class="bi bi-building"></i> 
+                                    {{ official.organization.name|truncatechars:40 }}
+                                </p>
+                            </div>
+                            <span class="risk-badge risk-{{ official.risk_level }}">
+                                {{ official.get_risk_level_display }}
+                            </span>
+                        </div>
+                        
+                        <!-- Risk Score Bar -->
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <small class="text-muted">Risk Score</small>
+                                <strong>{{ official.risk_score|floatformat:1 }} / 100</strong>
+                            </div>
+                            <div class="progress progress-thin">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ official.risk_score }}%; background: {% if official.risk_level == 'critical' %}#ef4444{% elif official.risk_level == 'high' %}#f97316{% elif official.risk_level == 'medium' %}#eab308{% else %}#22c55e{% endif %};">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Red Flags Summary -->
+                        {% if official.red_flags %}
+                        <div class="mt-2">
+                            {% for flag in official.red_flags|slice:":2" %}
+                            <span class="badge bg-danger-subtle text-danger me-1 small">
+                                <i class="bi bi-flag-fill"></i> {{ flag|truncatechars:40 }}
+                            </span>
+                            {% endfor %}
+                            {% if official.red_flags|length > 2 %}
+                            <small class="text-muted">+{{ official.red_flags|length|add:"-2" }} ta</small>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Action -->
+                        <div class="mt-3">
+                            <a href="{% url 'officials:detail' official.pk %}" class="btn btn-sm btn-primary-custom">
+                                <i class="bi bi-search"></i> Batafsil tahlil
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="stat-card text-center py-5">
+                <i class="bi bi-inbox fs-1 text-muted"></i>
+                <p class="mt-2 text-muted">Amaldorlar topilmadi</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,396 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ official.full_name }} — AI Risk Analysis{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'officials:list' %}">Amaldorlar</a></li>
+            <li class="breadcrumb-item active">{{ official.full_name }}</li>
+        </ol>
+    </nav>
+    
+    <!-- Main Profile Card -->
+    <div class="stat-card mb-4" 
+         style="background: linear-gradient(135deg, {% if official.risk_level == 'critical' %}#fef2f2, #fecaca{% elif official.risk_level == 'high' %}#fff7ed, #fed7aa{% else %}#f8fafc, #e2e8f0{% endif %});">
+        <div class="row align-items-center">
+            <div class="col-md-2 text-center">
+                <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                     style="width: 120px; height: 120px; background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; font-size: 3rem; font-weight: bold;">
+                    {{ official.full_name|slice:":1" }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h1 class="fw-bold mb-1">{{ official.full_name }}</h1>
+                <p class="mb-1 fs-5">{{ official.position }}</p>
+                <p class="text-muted mb-2">
+                    <i class="bi bi-building"></i> 
+                    <a href="{% url 'organizations:detail' official.organization.pk %}" class="text-decoration-none">
+                        {{ official.organization.name }}
+                    </a>
+                </p>
+                <div>
+                    <span class="badge bg-secondary me-2">
+                        <i class="bi bi-briefcase"></i> {{ official.get_position_level_display }}
+                    </span>
+                    {% if official.appointed_date %}
+                    <span class="badge bg-secondary">
+                        <i class="bi bi-calendar"></i> Tayinlangan: {{ official.appointed_date|date:"d.m.Y" }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-4 text-center">
+                <div class="risk-score-big {% if official.risk_level == 'critical' %}text-danger{% elif official.risk_level == 'high' %}text-warning{% else %}text-success{% endif %}">
+                    {{ official.risk_score|floatformat:0 }}
+                </div>
+                <div class="text-muted">Risk Score / 100</div>
+                <div class="mt-2">
+                    <span class="risk-badge risk-{{ official.risk_level }}" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                        {{ official.get_risk_level_display }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- CRITICAL ALERT for high-risk officials -->
+    {% if official.risk_level == 'critical' %}
+    <div class="alert alert-danger border-0 shadow mb-4" style="background: linear-gradient(135deg, #fef2f2, #fecaca);">
+        <div class="d-flex">
+            <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 2rem; color: #991b1b;"></i>
+            <div>
+                <h5 class="alert-heading mb-1">⚠️ KRITIK RISK DARAJASI</h5>
+                <p class="mb-0">
+                    Bu amaldor <strong>shoshilinch tekshiruvga</strong> muhtoj. 
+                    AI tizim bir nechta jiddiy anomaliyalar aniqladi.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Key Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-label">Oylik maosh</div>
+                <div class="h4 fw-bold text-primary">{{ official.monthly_salary|floatformat:0 }}</div>
+                <small class="text-muted">so'm</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center">
+                <div class="stat-label">Deklaratsiya daromadi</div>
+                <div class="h4 fw-bold text-info">{{ official.declared_income|floatformat:0 }}</div>
+                <small class="text-muted">so'm/yil</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center {% if ratio > 5 %}border-warning{% endif %}" 
+                 {% if ratio > 10 %}style="border: 2px solid #ef4444;"{% endif %}>
+                <div class="stat-label">Topilgan aktivlar</div>
+                <div class="h4 fw-bold text-danger">{{ total_assets_value|floatformat:0 }}</div>
+                <small class="text-muted">so'm</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card text-center {% if ratio > 10 %}pulse-critical{% endif %}">
+                <div class="stat-label">Nomuvofiqlik koeffitsienti</div>
+                <div class="h4 fw-bold {% if ratio > 10 %}text-danger{% elif ratio > 5 %}text-warning{% else %}text-success{% endif %}">
+                    {{ ratio|floatformat:1 }}x
+                </div>
+                <small class="text-muted">aktiv/daromad</small>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI EXPLANATION (eng muhim qism!) -->
+    <div class="stat-card mb-4" style="border: 2px solid #3b82f6;">
+        <div class="d-flex align-items-center mb-3">
+            <div class="me-3" style="font-size: 2rem;">🤖</div>
+            <div>
+                <h4 class="fw-bold mb-0">AI Tushuntirish</h4>
+                <small class="text-muted">Nega bu amaldor riskli? — Explainable AI</small>
+            </div>
+        </div>
+        
+        <div style="font-size: 1.05rem; line-height: 1.7;">
+            {{ official.risk_explanation|linebreaks }}
+        </div>
+        
+        {% if official.red_flags %}
+        <hr>
+        <h6 class="fw-bold text-danger">🚩 Red Flags:</h6>
+        {% for flag in official.red_flags %}
+        <div class="red-flag">
+            <div class="d-flex align-items-start">
+                <i class="bi bi-flag-fill red-flag-icon me-2"></i>
+                <div>{{ flag }}</div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+    
+    <!-- Risk Breakdown -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="stat-card h-100">
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-pie-chart-fill text-primary"></i>
+                    Risk Komponentlari
+                </h5>
+                <canvas id="riskBreakdownChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="col-lg-6">
+            <div class="stat-card h-100">
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-bar-chart-fill text-primary"></i>
+                    Risk ko'rsatkichlari
+                </h5>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>💰 Daromad nomuvofiqligi</span>
+                        <strong>{{ official.income_mismatch_score|floatformat:0 }}/100</strong>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar bg-danger" style="width: {{ official.income_mismatch_score }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>💎 Hayot tarzi</span>
+                        <strong>{{ official.lifestyle_score|floatformat:0 }}/100</strong>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar bg-warning" style="width: {{ official.lifestyle_score }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>🕸️ Yashirin tarmoq</span>
+                        <strong>{{ official.network_score|floatformat:0 }}/100</strong>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar" style="width: {{ official.network_score }}%; background: #8b5cf6;"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>📈 Boylik o'sishi</span>
+                        <strong>{{ official.wealth_growth_score|floatformat:0 }}/100</strong>
+                    </div>
+                    <div class="progress progress-thin">
+                        <div class="progress-bar bg-info" style="width: {{ official.wealth_growth_score }}%"></div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-secondary mt-4 mb-0 small">
+                    <strong>Formula:</strong> 
+                    Daromad (35%) + Hayot tarzi (25%) + Tarmoq (30%) + Boylik (10%)
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Assets -->
+    <div class="stat-card mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-house-heart"></i> Topilgan aktivlar
+            </h4>
+            <div>
+                <span class="badge bg-secondary me-2">Jami: {{ assets.count }}</span>
+                <span class="badge bg-danger">💎 Hashamatli: {{ luxury_assets.count }}</span>
+                <span class="badge bg-warning">👁️‍🗨️ Yashirin: {{ hidden_assets.count }}</span>
+            </div>
+        </div>
+        
+        {% if assets %}
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>Turi</th>
+                        <th>Nomi</th>
+                        <th>Joylashuvi</th>
+                        <th>Qiymati</th>
+                        <th>Egasi</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for asset in assets %}
+                    <tr>
+                        <td>{{ asset.get_asset_type_display }}</td>
+                        <td><strong>{{ asset.name }}</strong></td>
+                        <td><small class="text-muted">{{ asset.location|default:"—" }}</small></td>
+                        <td><strong class="{% if asset.value > 1000000000 %}text-danger{% endif %}">{{ asset.value|floatformat:0 }}</strong></td>
+                        <td><small>{{ asset.owner_name|default:official.full_name }}</small></td>
+                        <td>
+                            {% if asset.is_luxury %}
+                                <span class="badge bg-danger">💎 Hashamatli</span>
+                            {% endif %}
+                            {% if not asset.is_declared %}
+                                <span class="badge bg-warning">👁️‍🗨️ Yashirin</span>
+                            {% else %}
+                                <span class="badge bg-success">✓ Deklaratsiyada</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted">Aktivlar topilmadi</p>
+        {% endif %}
+    </div>
+    
+    <!-- Relatives -->
+    {% if relatives %}
+    <div class="stat-card mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-people-fill"></i> Yaqin qarindoshlar
+            </h4>
+            <div>
+                <span class="badge bg-danger">
+                    🕸️ Tender bog'liqliklar: {{ relatives_with_tenders.count }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="row g-3">
+            {% for relative in relatives %}
+            <div class="col-md-6">
+                <div class="p-3 border rounded {% if relative.has_government_tenders %}border-danger{% endif %}"
+                     {% if relative.has_government_tenders %}style="background: #fef2f2;"{% endif %}>
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <strong>{{ relative.full_name }}</strong>
+                            <span class="badge bg-secondary ms-1">{{ relative.get_relation_type_display }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if relative.has_business %}
+                    <div class="mb-2">
+                        <small class="text-muted">Biznes:</small>
+                        <div><strong>{{ relative.business_name }}</strong></div>
+                        <small>Qiymati: {{ relative.business_value|floatformat:0 }} so'm</small>
+                    </div>
+                    {% endif %}
+                    
+                    {% if relative.has_government_tenders %}
+                    <div class="alert alert-danger py-2 px-3 mb-0 mt-2 small">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <strong>Davlat tenderlari:</strong>
+                        <div>{{ relative.total_tenders_won }} ta tender — {{ relative.total_tender_value|floatformat:0 }} so'm</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Related Tenders -->
+    {% if related_tenders %}
+    <div class="stat-card mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="fw-bold mb-0">
+                <i class="bi bi-file-earmark-ruled"></i> Tender bog'liqliklari
+            </h4>
+            <span class="badge bg-danger">Jami: {{ total_tender_value|floatformat:0 }} so'm</span>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>Tender</th>
+                        <th>Tashkilot</th>
+                        <th>Kompaniya</th>
+                        <th>Qarindoshi</th>
+                        <th>Qiymati</th>
+                        <th>Sana</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tender in related_tenders %}
+                    <tr {% if tender.is_suspicious %}class="table-danger"{% endif %}>
+                        <td><strong>{{ tender.title|truncatechars:50 }}</strong></td>
+                        <td><small>{{ tender.organization.name|truncatechars:30 }}</small></td>
+                        <td>{{ tender.company_name }}</td>
+                        <td><small>{{ tender.linked_relative.full_name }}</small></td>
+                        <td><strong>{{ tender.value|floatformat:0 }}</strong></td>
+                        <td><small>{{ tender.awarded_date|date:"d.m.Y" }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Network Graph Link -->
+    <div class="stat-card text-center" style="background: linear-gradient(135deg, #1e3a8a, #1e40af); color: white;">
+        <h4 class="fw-bold mb-3">🕸️ To'liq network grafigini ko'ring</h4>
+        <p class="mb-3">Amaldor, qarindoshlari, kompaniyalar va tenderlar o'rtasidagi barcha bog'lanishlarni vizual ko'rinishda tahlil qiling</p>
+        <a href="{% url 'network:view_official' official.pk %}" class="btn btn-light btn-lg">
+            <i class="bi bi-diagram-3"></i> Network Graph ochish
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Risk Breakdown Radar Chart
+    const ctx = document.getElementById('riskBreakdownChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Daromad\nnomuvofiqligi', 'Hayot\ntarzi', 'Yashirin\ntarmoq', 'Boylik\no\'sishi'],
+            datasets: [{
+                label: 'Risk Score',
+                data: [
+                    {{ official.income_mismatch_score }},
+                    {{ official.lifestyle_score }},
+                    {{ official.network_score }},
+                    {{ official.wealth_growth_score }}
+                ],
+                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                borderColor: '#ef4444',
+                borderWidth: 2,
+                pointBackgroundColor: '#ef4444',
+                pointRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: { stepSize: 20 }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+</script>
+{% endblock %}

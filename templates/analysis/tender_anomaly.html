@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="fw-bold mb-4">
+        <i class="bi bi-file-earmark-ruled text-warning"></i>
+        Tender Anomaliyalari
+    </h1>
+    
+    <div class="stat-card mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="mb-0">Shubhali tenderlar</h5>
+                <p class="text-muted mb-0 small">Bozor narxidan 20% dan ko'p farq qiladigan</p>
+            </div>
+            <div class="text-end">
+                <div class="h3 fw-bold text-danger mb-0">{{ total_suspicious_value|floatformat:0 }}</div>
+                <small class="text-muted">jami shubhali qiymat (so'm)</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>Tender</th>
+                        <th>Tashkilot</th>
+                        <th>Kompaniya</th>
+                        <th>Qiymat</th>
+                        <th>Bozor farqi</th>
+                        <th>Sana</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in suspicious_tenders %}
+                    <tr class="table-danger">
+                        <td><strong>{{ t.title|truncatechars:60 }}</strong></td>
+                        <td><small>{{ t.organization.name|truncatechars:40 }}</small></td>
+                        <td>{{ t.company_name }}</td>
+                        <td><strong>{{ t.value|floatformat:0 }}</strong></td>
+                        <td><span class="badge bg-danger">+{{ t.price_vs_market }}%</span></td>
+                        <td><small>{{ t.awarded_date|date:"d.m.Y" }}</small></td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center py-4 text-muted">Ma'lumot yo'q</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

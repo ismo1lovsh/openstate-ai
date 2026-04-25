@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Lifestyle Analyzer — CleanState AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="mb-4">
+        <h1 class="fw-bold mb-1">
+            <i class="bi bi-graph-up-arrow text-primary"></i> 
+            Lifestyle vs Income Analyzer
+        </h1>
+        <p class="text-muted">Daromad va topilgan aktivlar o'rtasidagi nomuvofiqlik tahlili</p>
+    </div>
+    
+    <!-- Explanation -->
+    <div class="alert alert-info border-0 mb-4" style="background: #dbeafe;">
+        <div class="d-flex">
+            <i class="bi bi-lightbulb-fill me-3" style="font-size: 1.5rem; color: #1e40af;"></i>
+            <div>
+                <strong>AI Logika:</strong>
+                Agar amaldorning <strong>topilgan aktivlari</strong> rasmiy <strong>yillik daromadidan</strong> 
+                10 baravardan ortiq bo'lsa — bu jiddiy signal. 
+                Grafikda har bir nuqta — bitta amaldor.
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Chart -->
+    <div class="stat-card mb-4">
+        <h4 class="fw-bold mb-3">📊 Scatter Plot: Daromad vs Aktivlar</h4>
+        <div style="position: relative; height: 500px;">
+            <canvas id="scatterChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Top Risky -->
+    <div class="stat-card">
+        <h4 class="fw-bold mb-3">
+            <i class="bi bi-exclamation-octagon-fill text-danger"></i>
+            Eng yuqori mismatch (top 20)
+        </h4>
+        
+        <div class="table-responsive">
+            <table class="table table-modern">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Amaldor</th>
+                        <th>Lavozim</th>
+                        <th>Daromad (yillik)</th>
+                        <th>Aktivlar</th>
+                        <th>Nisbat</th>
+                        <th>Risk</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for o in officials %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ o.full_name }}</strong></td>
+                        <td><small>{{ o.position|truncatechars:30 }}</small></td>
+                        <td>{{ o.declared_income|floatformat:0 }}</td>
+                        <td>{{ o.total_assets|floatformat:0 }}</td>
+                        <td>
+                            <strong class="{% if o.assets_to_income_ratio > 10 %}text-danger{% elif o.assets_to_income_ratio > 5 %}text-warning{% endif %}">
+                                {{ o.assets_to_income_ratio|floatformat:1 }}x
+                            </strong>
+                        </td>
+                        <td>
+                            <span class="risk-badge risk-{{ o.risk_level }}">
+                                {{ o.risk_score|floatformat:0 }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'officials:detail' o.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const scatterData = {{ scatter_data|safe }};
+    
+    // Separate by risk level
+    const critical = scatterData.filter(d => d.risk >= 75);
+    const high = scatterData.filter(d => d.risk >= 50 && d.risk < 75);
+    const medium = scatterData.filter(d => d.risk >= 25 && d.risk < 50);
+    const low = scatterData.filter(d => d.risk < 25);
+    
+    const ctx = document.getElementById('scatterChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: '🔴 Kritik',
+                    data: critical.map(d => ({ x: d.income, y: d.assets, name: d.name, id: d.id })),
+                    backgroundColor: '#ef4444',
+                    pointRadius: 10,
+                    pointHoverRadius: 14,
+                },
+                {
+                    label: '🟠 Yuqori',
+                    data: high.map(d => ({ x: d.income, y: d.assets, name: d.name, id: d.id })),
+                    backgroundColor: '#f97316',
+                    pointRadius: 8,
+                    pointHoverRadius: 12,
+                },
+                {
+                    label: '🟡 O\'rta',
+                    data: medium.map(d => ({ x: d.income, y: d.assets, name: d.name, id: d.id })),
+                    backgroundColor: '#eab308',
+                    pointRadius: 7,
+                },
+                {
+                    label: '🟢 Past',
+                    data: low.map(d => ({ x: d.income, y: d.assets, name: d.name, id: d.id })),
+                    backgroundColor: '#22c55e',
+                    pointRadius: 6,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const d = context.raw;
+                            return [
+                                d.name,
+                                'Daromad: ' + d.x.toLocaleString(),
+                                'Aktivlar: ' + d.y.toLocaleString()
+                            ];
+                        }
+                    }
+                },
+                legend: { position: 'top' }
+            },
+            scales: {
+                x: {
+                    title: { display: true, text: 'Yillik daromad (so\'m)' },
+                    type: 'logarithmic',
+                },
+                y: {
+                    title: { display: true, text: 'Topilgan aktivlar (so\'m)' },
+                    type: 'logarithmic',
+                }
+            },
+            onClick: (evt, activeEls) => {
+                if (activeEls.length > 0) {
+                    const el = activeEls[0];
+                    const ds = ctx.chart.data.datasets[el.datasetIndex];
+                    const point = ds.data[el.index];
+                    window.location.href = `/officials/${point.id}/`;
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
